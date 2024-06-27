@@ -1,70 +1,51 @@
-import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+  import React, { useState, useEffect } from 'react';
+  import io from 'socket.io-client';
 
-const socket = io('http://localhost:4000');
+  const socket = io('http://localhost:4000');
 
-function UserApp() {
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [username, setUsername] = useState('');
-  const [joined, setJoined] = useState(false);
+  function App() {
+    const [message, setMessage] = useState('');
+    const [messages, setMessages] = useState([]);
 
-  useEffect(() => {
-    socket.on('msgtoSuport', (message) => {
-      alert(message)
-      setMessages((prevMessages) => [...prevMessages, message]);
-    });
-  }, []);
-  socket.on('msgtoSuport', (message) => {
-    console.log(message);
-    setMessages((prevMessages) => [...prevMessages, message]);
-  });
-  const joinChat = () => {
-    if (username) {
-      socket.emit('join', username);
-      setJoined(true);
-    }
-  };
+    useEffect(() => {
+      socket.emit('joinRoom', { room: 'client' });
 
-  const sendMessage = () => {
-    if (message) {
-      socket.emit('message', { username, message });
-      setMessage('');
-    }
-  };
+      socket.on('clientMessage', (data) => {
+        setMessages((prevMessages) => [...prevMessages, `Support: ${data.message}`]);
+      });
+      
+      return () => {
+        socket.off('clientMessage');
+      };
+    }, []);
 
-  return (
-    <div>
-      {!joined ? (
-        <div>
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <button onClick={joinChat}>Join Chat</button>
+    const sendMessage = () => {
+      if (message) {
+        
+        socket.emit('clientMessage', { message });
+        // alert(socket.id)
+        setMessage('');
+      }
+    };
+
+    return (
+      <div>
+        <h1>Chat Client</h1>
+        <div id="messages">
+          {messages.map((msg, index) => (
+            <div key={index}>{msg}</div>
+          ))}
         </div>
-      ) : (
-        <div>
-          <div>
-            {messages.map((msg, index) => (
-              <div key={index}>
-                <strong>{msg.username}</strong>: {msg.message}
-              </div>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="Enter your message"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-          />
-          <button onClick={sendMessage}>Send</button>
-        </div>
-      )}
-    </div>
-  );
-}
+        <input
+          id="message"
+          type="text"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder="Type your message here"
+        />
+        <button onClick={sendMessage}>Send</button>
+      </div>
+    );
+  }
 
-export default UserApp;
+  export default App;
